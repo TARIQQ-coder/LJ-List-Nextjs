@@ -62,7 +62,7 @@ export async function sendSms(phoneNumber, message) {
       return { error: true }
     }
 
-    console.log(`✓ SMS sent via ${provider} to ${recipient}`)
+    console.log(`✓ SMS sent via ${provider} to ${recipient}:`, JSON.stringify(body))
     return body
   } catch (err) {
     console.error(`${provider} SMS network error:`, err.message)
