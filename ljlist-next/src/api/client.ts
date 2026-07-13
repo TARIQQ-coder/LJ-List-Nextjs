@@ -1,4 +1,4 @@
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://lj-list-api.onrender.com'
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
 type RequestOptions = {
   body?: unknown
