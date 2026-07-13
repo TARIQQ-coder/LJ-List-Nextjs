@@ -1,0 +1,10 @@
+export function getPagination(query, { defaultLimit = 20, maxLimit = 100 } = {}) {
+  const page = Math.max(1, parseInt(query.page, 10) || 1)
+  const limit = Math.min(maxLimit, Math.max(1, parseInt(query.limit, 10) || defaultLimit))
+  return { page, limit, skip: (page - 1) * limit }
+}
+
+export function buildMeta(total, page, limit) {
+  const total_pages = Math.max(1, Math.ceil(total / limit))
+  return { total, page, limit, total_pages, has_next: page < total_pages, has_prev: page > 1 }
+}
