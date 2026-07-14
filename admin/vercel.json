@@ -1,7 +1,7 @@
 {
   "rewrites": [
-    { "source": "/api/:path*", "destination": "https://lj-list-nextjs.onrender.com" },
-    { "source": "/uploads/:path*", "destination": "https://lj-list-nextjs.onrender.com" },
+    { "source": "/api/:path*", "destination": "https://lj-list-nextjs.onrender.com/api/:path*" },
+    { "source": "/uploads/:path*", "destination": "https://lj-list-nextjs.onrender.com/uploads/:path*" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
