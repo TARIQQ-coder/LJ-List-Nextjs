@@ -10,6 +10,7 @@ async function main() {
   } else {
     console.log('⚠ SKIP_DB=true — running without MongoDB (routes will fail on DB access)')
   }
+  console.log('Cloudinary enabled:', Boolean(process.env.CLOUDINARY_URL))
   app.listen(config.port, () => {
     console.log(`✓ LJ-list API running on ${config.publicUrl} (port ${config.port})`)
   })
