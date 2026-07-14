@@ -80,7 +80,7 @@ export const Category = model('Category', categorySchema)
 
 // ─── Product ──────────────────────────────────────────────────────────────────
 const productImageSchema = new Schema(
-  { image_url: { type: String, required: true } },
+  { image_url: { type: String, required: true },public_id: String },
   { timestamps: { createdAt: 'created_at', updatedAt: false } },
 )
 

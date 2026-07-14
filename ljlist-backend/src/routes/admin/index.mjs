@@ -15,6 +15,7 @@ import { setAuthCookies } from '../../utils/tokens.mjs'
 import { listProducts } from '../products.mjs'
 import { loadFixedPackages } from '../packages.mjs'
 import { config } from '../../config.mjs'
+import { cloudinaryEnabled, uploadToCloudinary, deleteFromCloudinary } from '../../utils/images.mjs'
 
 const router = Router()
 
@@ -164,21 +165,20 @@ router.delete('/products/:id', asyncHandler(async (req, res) => {
 }))
 
 // ─── Product images (multipart field: "images") ──────────────────────────────
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, path.resolve('uploads')),
-  filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase() || '.jpg'
-    cb(null, `${Date.now()}-${crypto.randomBytes(6).toString('hex')}${ext}`)
-  },
-})
+// Files land in memory; we then push them to Cloudinary (or disk in dev)
 const upload = multer({
-  storage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024, files: 8 },
   fileFilter: (_req, file, cb) => {
     const okType = /image\/(jpeg|png|webp|gif|svg\+xml)/.test(file.mimetype)
     cb(okType ? null : badRequest('Only image files are allowed.'), okType)
   },
 })
+
+const uniqueName = original => {
+  const ext = path.extname(original).toLowerCase() || '.jpg'
+  return `${Date.now()}-${crypto.randomBytes(6).toString('hex')}${ext}`
+}
 
 const serializeImages = product =>
   (product.images || []).map(img => ({
@@ -198,8 +198,18 @@ router.post('/products/:id/images', upload.array('images', 8), asyncHandler(asyn
   const product = await Product.findById(req.params.id).catch(() => null)
   if (!product) throw notFound('Product not found.')
   if (!req.files?.length) throw badRequest('No images uploaded.', { images: ['Attach at least one image.'] })
+
   for (const file of req.files) {
-    product.images.push({ image_url: `${config.publicUrl}/uploads/${file.filename}` })
+    const filename = uniqueName(file.originalname)
+    if (cloudinaryEnabled) {
+      const { url, publicId } = await uploadToCloudinary(file.buffer, filename)
+      product.images.push({ image_url: url, public_id: publicId })
+    } else {
+      // Dev fallback: write to local uploads/ as before
+      const fs = await import('node:fs/promises')
+      await fs.writeFile(path.resolve('uploads', filename), file.buffer)
+      product.images.push({ image_url: `${config.publicUrl}/uploads/${filename}` })
+    }
   }
   await product.save()
   ok(res, { images: serializeImages(product) }, { message: `${req.files.length} image(s) uploaded.`, status: 201 })
@@ -208,6 +218,8 @@ router.post('/products/:id/images', upload.array('images', 8), asyncHandler(asyn
 router.delete('/products/:id/images/:imageId', asyncHandler(async (req, res) => {
   const product = await Product.findById(req.params.id).catch(() => null)
   if (!product) throw notFound('Product not found.')
+  const target = product.images.find(img => String(img._id) === req.params.imageId)
+  if (target?.public_id) await deleteFromCloudinary(target.public_id)
   product.images = product.images.filter(img => String(img._id) !== req.params.imageId)
   await product.save()
   ok(res, {}, { message: 'Image removed.' })
